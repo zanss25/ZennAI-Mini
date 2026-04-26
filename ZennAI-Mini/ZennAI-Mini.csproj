@@ -7,6 +7,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <BaseOutputPath>D:\_Proyek_\App Projects\Zenn AI Mini\ZennAI-Mini\Builds</BaseOutputPath>
+    <Title>ZennAI Mini</Title>
+    <FileVersion>0.0.1.0</FileVersion>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Google_GenerativeAI" Version="3.6.6" />
+    <PackageReference Include="MdXaml" Version="1.27.0" />
+  </ItemGroup>
 
 </Project>

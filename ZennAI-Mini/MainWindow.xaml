@@ -3,10 +3,594 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:mdxaml="clr-namespace:MdXaml;assembly=MdXaml"
         xmlns:local="clr-namespace:ZennAI_Mini"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="ZennAI Mini"
+        MinHeight="450" MinWidth="350"
+        Width="350" MaxWidth="420">
 
-    </Grid>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" 
+                      GlassFrameThickness="-1"
+                      CornerRadius="0" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <ResourceDictionary>
+
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/CustomResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Bool → Visibility -->
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <!-- User bubble style -->
+            <Style x:Key="UserBubbleStyle" TargetType="Border">
+                <Setter Property="Background" Value="#FF3D3454"/>
+                <Setter Property="CornerRadius" Value="10,10,2,10"/>
+                <Setter Property="Padding" Value="10,7"/>
+                <Setter Property="MaxWidth" Value="220"/>
+                <Setter Property="Margin" Value="40,3,7,3"/>
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+            </Style>
+
+            <!-- Model bubble style -->
+            <Style x:Key="ModelBubbleStyle" TargetType="Border">
+                <Setter Property="Background" Value="#FF272237"/>
+                <Setter Property="BorderBrush" Value="#33937BD1"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="10,10,10,2"/>
+                <Setter Property="Padding" Value="10,7"/>
+                <Setter Property="MaxWidth" Value="235"/>
+                <Setter Property="Margin" Value="4,3,40,3"/>
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+            </Style>
+
+            <!-- Bubble text -->
+            <Style x:Key="BubbleTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="#E5FFFFFF"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="LineHeight" Value="18"/>
+            </Style>
+
+            <!-- Timestamp label -->
+            <Style x:Key="TimestampStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="#55FFFFFF"/>
+                <Setter Property="FontSize" Value="9.5"/>
+                <Setter Property="Margin" Value="0,2,0,0"/>
+            </Style>
+
+            <!-- Typing dots animation -->
+            <Style x:Key="TypingDotStyle" TargetType="Ellipse">
+                <Setter Property="Width" Value="5"/>
+                <Setter Property="Height" Value="5"/>
+                <Setter Property="Fill" Value="#80937BD1"/>
+                <Setter Property="Margin" Value="2,0"/>
+            </Style>
+
+            <!-- Send button -->
+            <Style x:Key="SendButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#FF46405C"/>
+                <Setter Property="Foreground" Value="#CCF5F5F5"/>
+                <Setter Property="Width" Value="34"/>
+                <Setter Property="Height" Value="34"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="#00000000"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#FF574E72"/>
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#AA594D7B"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.35"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#FF221E2C"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Stop button -->
+            <Style x:Key="StopButtonStyle" TargetType="Button" BasedOn="{StaticResource SendButtonStyle}">
+                <Setter Property="Background" Value="#FF312641"/>
+            </Style>
+
+            <!-- DataTemplate: User message -->
+            <DataTemplate x:Key="UserMessageTemplate">
+                <StackPanel HorizontalAlignment="Right" Margin="0,1">
+                    <Border Style="{StaticResource UserBubbleStyle}">
+                        <TextBlock Text="{Binding Text}" Style="{StaticResource BubbleTextStyle}"/>
+                    </Border>
+                    <TextBlock Text="{Binding TimeLabel}"
+                               Style="{StaticResource TimestampStyle}"
+                               HorizontalAlignment="Right"
+                               Margin="0,0,6,0"/>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- DataTemplate: Model message -->
+            <DataTemplate x:Key="ModelMessageTemplate">
+                <StackPanel HorizontalAlignment="Left" Margin="0,1">
+                    <Border Margin="20">
+                        <StackPanel>
+
+                            <!-- Markdown renderer (pesan sudah selesai) -->
+                            <mdxaml:MarkdownScrollViewer
+                                    Markdown="{Binding Text}"
+                                    Foreground="#E5FFFFFF"
+                                    Background="Transparent"
+                                    VerticalScrollBarVisibility="Disabled"
+                                    HorizontalScrollBarVisibility="Disabled">
+
+                                <mdxaml:MarkdownScrollViewer.MarkdownStyle>
+                                    <Style TargetType="FlowDocument">
+                                        <Setter Property="Background"    Value="Transparent"/>
+                                        <Setter Property="Foreground"    Value="#E5FFFFFF"/>
+                                        <Setter Property="FontFamily"    Value="Segoe UI Variable"/>
+                                        <Setter Property="FontSize"      Value="13"/>
+                                        <Setter Property="PagePadding"   Value="0"/>
+                                        <Setter Property="TextAlignment" Value="Left"/>
+
+                                        <Style.Resources>
+
+                                            <!-- Teks biasa -->
+                                            <Style TargetType="Paragraph">
+                                                <Setter Property="Foreground" Value="#E5FFFFFF"/>
+                                                <Setter Property="FontSize"   Value="13"/>
+                                                <Setter Property="Margin"     Value="0,4,0,4"/>
+
+                                                <Style.Triggers>
+                                                    <!-- Heading 1 -->
+                                                    <Trigger Property="Tag" Value="Heading1">
+                                                        <Setter Property="Foreground"  Value="#FFB6A0ED"/>
+                                                        <Setter Property="FontSize"    Value="20"/>
+                                                        <Setter Property="FontWeight"  Value="Bold"/>
+                                                        <Setter Property="Margin"      Value="0,8,0,4"/>
+                                                    </Trigger>
+                                                    <!-- Heading 2 -->
+                                                    <Trigger Property="Tag" Value="Heading2">
+                                                        <Setter Property="Foreground"  Value="#FF9A8FB9"/>
+                                                        <Setter Property="FontSize"    Value="16"/>
+                                                        <Setter Property="FontWeight"  Value="Bold"/>
+                                                        <Setter Property="Margin"      Value="0,6,0,3"/>
+                                                    </Trigger>
+                                                    <!-- Heading 3 -->
+                                                    <Trigger Property="Tag" Value="Heading3">
+                                                        <Setter Property="Foreground"  Value="#FF8880A8"/>
+                                                        <Setter Property="FontSize"    Value="14"/>
+                                                        <Setter Property="FontWeight"  Value="SemiBold"/>
+                                                        <Setter Property="Margin"      Value="0,4,0,2"/>
+                                                    </Trigger>
+                                                    <!-- Code block -->
+                                                    <Trigger Property="Tag" Value="CodeSpan">
+                                                        <Setter Property="Background"  Value="#22937BD1"/>
+                                                        <Setter Property="Foreground"  Value="#FFCBB4FF"/>
+                                                        <Setter Property="FontFamily"  Value="Consolas"/>
+                                                        <Setter Property="FontSize"    Value="12"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+
+                                            <!-- Inline code -->
+                                            <Style TargetType="Run">
+                                                <Setter Property="Foreground" Value="#E5FFFFFF"/>
+                                                <Setter Property="FontSize"   Value="13"/>
+                                            </Style>
+
+                                            <!-- Code block -->
+                                            <Style TargetType="Section">
+                                                <Style.Triggers>
+                                                    <Trigger Property="Tag" Value="CodeBlock">
+                                                        <Setter Property="Background"  Value="#FF1E1A2E"/>
+                                                        <Setter Property="Foreground"  Value="#FFCBB4FF"/>
+                                                        <Setter Property="FontFamily"  Value="Consolas"/>
+                                                        <Setter Property="FontSize"    Value="12"/>
+                                                        <Setter Property="Padding"     Value="10,6"/>
+                                                    </Trigger>
+                                                    <!-- Blockquote -->
+                                                    <Trigger Property="Tag" Value="Blockquote">
+                                                        <Setter Property="BorderBrush"     Value="#FF594D7B"/>
+                                                        <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                                                        <Setter Property="Padding"         Value="10,4"/>
+                                                        <Setter Property="Foreground"      Value="#AA9A8FB9"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+
+                                            <!-- Tabel: cell biasa -->
+                                            <Style TargetType="TableCell">
+                                                <Setter Property="Padding"      Value="8,5"/>
+                                                <Setter Property="BorderBrush"  Value="#44594D7B"/>
+                                                <Setter Property="BorderThickness" Value="1"/>
+                                                <Setter Property="Foreground"   Value="#E5FFFFFF"/>
+
+                                                <Style.Triggers>
+                                                    <!-- Header row (Tag="TableHeader") -->
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TableRow}, Path=Tag}"
+                                                                 Value="TableHeader">
+                                                        <Setter Property="Background" Value="#FF3F3656"/>
+                                                        <Setter Property="Foreground" Value="#FFB6A0ED"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    </DataTrigger>
+                                                    <!-- Even row zebra -->
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TableRow}, Path=Tag}"
+                                                                 Value="EvenTableRow">
+                                                        <Setter Property="Background" Value="#11FFFFFF"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+
+                                            <!-- List item -->
+                                            <Style TargetType="List">
+                                                <Setter Property="Margin"  Value="10,0,0,4"/>
+                                                <Setter Property="Padding" Value="20,0,0,0"/>
+                                            </Style>
+
+                                        </Style.Resources>
+                                    </Style>
+                                </mdxaml:MarkdownScrollViewer.MarkdownStyle>
+
+                                <mdxaml:MarkdownScrollViewer.Style>
+                                    <Style TargetType="mdxaml:MarkdownScrollViewer">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </mdxaml:MarkdownScrollViewer.Style>
+
+                            </mdxaml:MarkdownScrollViewer>
+
+                            <!-- Plain TextBlock saat streaming (biar ringan) -->
+                            <TextBlock Text="{Binding Text}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BubbleTextStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <!-- Typing dots — tetap sama seperti sebelumnya -->
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsStreaming}" Value="True"/>
+                                                    <Condition Binding="{Binding Text}" Value=""/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <!-- ... dot ellipses sama seperti sebelumnya ... -->
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding TimeLabel}"
+                               Style="{StaticResource TimestampStyle}"
+                               HorizontalAlignment="Left"
+                               Margin="6,0,0,0"/>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- ItemTemplateSelector replacement: use a single template with triggers -->
+            <DataTemplate x:Key="ChatMessageTemplate">
+                <ContentControl>
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate" Value="{StaticResource ModelMessageTemplate}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsUser}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource UserMessageTemplate}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                    <ContentControl.Content>
+                        <Binding/>
+                    </ContentControl.Content>
+                </ContentControl>
+            </DataTemplate>
+
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Background>
+        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+            <LinearGradientBrush.RelativeTransform>
+                <TransformGroup>
+                    <ScaleTransform CenterY="0.5" CenterX="0.5"/>
+                    <SkewTransform CenterX="0.5" CenterY="0.5"/>
+                    <RotateTransform Angle="-41.82" CenterX="0.5" CenterY="0.5"/>
+                    <TranslateTransform X="0.3" Y="0.3"/>
+                </TransformGroup>
+            </LinearGradientBrush.RelativeTransform>
+            <GradientStop Color="#FF221E2D"/>
+            <GradientStop Color="#FF251E39" Offset="0.898"/>
+        </LinearGradientBrush>
+    </Window.Background>
+
+    <Border BorderThickness="2, 40, 2, 10">
+        <Border.BorderBrush>
+            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                <LinearGradientBrush.RelativeTransform>
+                    <TransformGroup>
+                        <ScaleTransform CenterY="0.5" CenterX="0.5"/>
+                        <SkewTransform CenterX="0.5" CenterY="0.5"/>
+                        <RotateTransform Angle="90" CenterX="0.5" CenterY="0.5"/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </LinearGradientBrush.RelativeTransform>
+                <GradientStop Color="#FF2A243B"/>
+                <GradientStop Color="#FF2E2741" Offset="0.5"/>
+                <GradientStop Color="#FF2A243B" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.BorderBrush>
+
+        <Grid x:Name="MainGrid">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- header row -->
+                <RowDefinition Height="*"/>
+                <!-- chat area -->
+                <RowDefinition Height="Auto"/>
+                <!-- status bar -->
+                <RowDefinition Height="Auto"/>
+                <!-- input area -->
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="24"/>
+                <ColumnDefinition Width="212"/>
+                <ColumnDefinition Width="427*"/>
+                <ColumnDefinition Width="13*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid.LayoutTransform>
+                <ScaleTransform ScaleX="1" ScaleY="1" />
+            </Grid.LayoutTransform>
+
+            <Grid.Effect>
+                <BlurEffect Radius="0"/>
+            </Grid.Effect>
+
+            <!-- ══ Window control buttons ══ -->
+            <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2"
+                        Margin="0,-39,5,1" Style="{StaticResource WindowControlButtonAreaStyle}">
+
+                <Button Content="—" Click="BtnMinimize_Click" Style="{StaticResource ControlButtonStyle}"
+                        MinWidth="35" MinHeight="30" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Button Content="✕" Click="BtnClose_Click" Style="{StaticResource ControlButtonStyle}"
+                        MinWidth="35" MinHeight="30" FontSize="13" FontWeight="Bold" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- ══ Title "ZENN" ══ -->
+            <StackPanel Orientation="Horizontal" Grid.Row="0"
+                        Margin="10,-40,0,0" WindowChrome.IsHitTestVisibleInChrome="False"
+                        HorizontalAlignment="Left" VerticalAlignment="Top" Grid.Column="1"
+                        MinWidth="55" MinHeight="40">
+
+                <TextBlock Text="ZENN" FontWeight="Bold"
+                           VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                           MaxWidth="50" FontSize="17" Margin="0,0,0,5">
+                    <TextBlock.Foreground>
+                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                            <GradientStop Color="#A89083B3"/>
+                            <GradientStop Color="#A8B6A0ED" Offset="1"/>
+                        </LinearGradientBrush>
+                    </TextBlock.Foreground>
+                </TextBlock>
+
+                <!-- "AI" badge next to title -->
+                <Border Background="#331E1739" BorderBrush="#44937BD1" BorderThickness="1"
+                        CornerRadius="3" Padding="4,1" Margin="4,0,0,8" VerticalAlignment="Bottom">
+                    <TextBlock Text="AI" FontSize="8" FontWeight="SemiBold"
+                               Foreground="#88937BD1" VerticalAlignment="Center"/>
+                </Border>
+                
+                <!-- "alpha" next to "AI" badge -->
+                <TextBlock Text="alpha 0.0.1" FontSize="9" Foreground="#669A8FB9"
+                           Padding="4,1" Margin="3,0,0,8" VerticalAlignment="Bottom"/>
+
+            </StackPanel>
+
+            <!-- ══ Thin separator below header ══ -->
+            <Border Grid.Row="0" Grid.ColumnSpan="4"
+                    Height="1" VerticalAlignment="Bottom"
+                    Margin="8,0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#00594D7B" Offset="0"/>
+                        <GradientStop Color="#55594D7B" Offset="0.5"/>
+                        <GradientStop Color="#00594D7B" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+
+            <!-- ══ Chat message list ══ -->
+            <ScrollViewer x:Name="ChatScroll"
+                          Grid.Row="1" Grid.ColumnSpan="4"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,4,0,4"
+                          Margin="0,0,0,0">
+                <ScrollViewer.Resources>
+                    <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource SimpleScrollBarEdge}"/>
+                </ScrollViewer.Resources>
+
+                <ItemsControl x:Name="MessageList"
+                              ItemsSource="{Binding Messages}"
+                              ItemTemplate="{StaticResource ChatMessageTemplate}"
+                              Padding="0,4">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- ══ Status bar ══ -->
+            <Border Grid.Row="2" Grid.ColumnSpan="4"
+                    Margin="8,0" Padding="4,3">
+                <Grid>
+                    <TextBlock Text="{Binding StatusText}"
+                               FontSize="10"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#55FFFFFF"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="Foreground" Value="#CCFF6B8A"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Busy spinner dots (right side) -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+                        <Ellipse Style="{StaticResource TypingDotStyle}">
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0.2" To="0.9" Duration="0:0:0.45" AutoReverse="True"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                        <Ellipse Style="{StaticResource TypingDotStyle}">
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever" BeginTime="0:0:0.15">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0.2" To="0.9" Duration="0:0:0.45" AutoReverse="True"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                        <Ellipse Style="{StaticResource TypingDotStyle}">
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever" BeginTime="0:0:0.3">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0.2" To="0.9" Duration="0:0:0.45" AutoReverse="True"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ══ Input area ══ -->
+            <Border Grid.Row="3" Grid.ColumnSpan="4"
+                    Background="#22FFFFFF"
+                    BorderBrush="#33937BD1"
+                    BorderThickness="0,1,0,0"
+                    Padding="8,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Multi-line input TextBox -->
+                    <TextBox x:Name="InputBox"
+                             Grid.Column="0"
+                             Style="{StaticResource TextBoxStyle}"
+                             Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="False"
+                             TextWrapping="Wrap"
+                             FontSize="13"
+                             MaxLines="4"
+                             MinHeight="34"
+                             MaxHeight="80"
+                             VerticalScrollBarVisibility="Auto"
+                             VerticalContentAlignment="Center"
+                             IsEnabled="{Binding IsNotBusy}"
+                             KeyDown="InputBox_KeyDown"
+                             Margin="0,0,6,0">
+                        <TextBox.Resources>
+                            <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource SimpleScrollBar}"/>
+                        </TextBox.Resources>
+                    </TextBox>
+
+                    <!-- Send / Stop button -->
+                    <Grid Grid.Column="1">
+                        <!-- Send -->
+                        <Button Style="{StaticResource SendButtonStyle}"
+                                Command="{Binding SendCommand}"
+                                ToolTip="Kirim (Enter)"
+                                Visibility="{Binding IsNotBusy, Converter={StaticResource BoolToVis}}">
+                            <Path Data="M2,12 L22,12 M15,5 L22,12 L15,19"
+                                  Stroke="#BB937BD1" StrokeThickness="2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Width="16" Height="16"
+                                  Stretch="Uniform"/>
+                        </Button>
+
+                        <!-- Stop (shown while busy) -->
+                        <Button Style="{StaticResource StopButtonStyle}"
+                                Command="{Binding StopCommand}"
+                                ToolTip="Hentikan">
+                            <Button.Visibility>
+                                <Binding Path="IsBusy" Converter="{StaticResource BoolToVis}"/>
+                            </Button.Visibility>
+                            <Rectangle Width="10" Height="10"
+                                       Fill="#DDB39BF1"
+                                       RadiusX="2" RadiusY="2"/>
+                        </Button>
+                    </Grid>
+
+                </Grid>
+            </Border>
+
+            <!-- ══ Black overlay (keep on top, non-interactive) ══ 
+            <Border x:Name="BlackOverlay" Grid.ColumnSpan="4" Grid.RowSpan="5"
+                    Background="#00000000"
+                    Margin="0,-39,0,-10"
+                    IsHitTestVisible="False"/> -->
+
+        </Grid>
+    </Border>
+
 </Window>
